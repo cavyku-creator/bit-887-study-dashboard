@@ -69,6 +69,20 @@ export type EnglishItem = {
   review_count: number;
 };
 
+export type EnglishDailyStat = {
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  date: string;
+  app_name: string;
+  new_words: number;
+  reviewed_words: number;
+  study_minutes: number;
+  accuracy: number | null;
+  note: string | null;
+};
+
 export type CampLog = {
   id: string;
   user_id: string;
@@ -115,6 +129,7 @@ export type TableName =
   | "math_errors"
   | "knowledge_cards"
   | "english_items"
+  | "english_daily_stats"
   | "camp_logs"
   | "reviews"
   | "study_sessions";
@@ -124,6 +139,7 @@ export type RowByTable = {
   math_errors: MathError;
   knowledge_cards: KnowledgeCard;
   english_items: EnglishItem;
+  english_daily_stats: EnglishDailyStat;
   camp_logs: CampLog;
   reviews: Review;
   study_sessions: StudySession;
