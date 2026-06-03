@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3, Flame, Timer, Trophy } from "lucide-react";
-import { Card, PageHeader } from "@/components/ui";
+import { Card, PageHeader, ProgressRing } from "@/components/ui";
 import { Protected } from "@/components/Protected";
 import { percent, todayISO } from "@/lib/date";
 import { subjectColors, subjects } from "@/lib/labels";
@@ -30,12 +30,21 @@ function DashboardView() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Dashboard" description="用几个稳定指标看今天和本周是否在轨道上。" />
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><Timer className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">今日学习时长</p><p className="mt-1 text-3xl font-semibold">{todayMinutes}</p><p className="text-xs text-muted">分钟</p></Card>
-        <Card><BarChart3 className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">本周完成率</p><p className="mt-1 text-3xl font-semibold">{weeklyCompletion}%</p><p className="text-xs text-muted">{weeklyDone}/{weeklyTasks.length} 项</p></Card>
-        <Card><Flame className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">连续学习天数</p><p className="mt-1 text-3xl font-semibold">{streak}</p><p className="text-xs text-muted">天</p></Card>
-        <Card><Trophy className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">今日完成任务</p><p className="mt-1 text-3xl font-semibold">{todaysDoneTasks.length}</p><p className="text-xs text-muted">项</p></Card>
+      <PageHeader title="进度总览" description="首页负责今天，这里只看本周节奏和四科是否均衡。" />
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <Card className="grid place-items-center gap-4">
+          <ProgressRing label="本周完成" size="md" value={weeklyCompletion} />
+          <div className="text-center">
+            <p className="text-sm text-muted">本周已完成 {weeklyDone}/{weeklyTasks.length} 项</p>
+            <p className="mt-1 text-xs text-muted">按周一到今天计算</p>
+          </div>
+        </Card>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Card><Timer className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">今日学习时长</p><p className="mt-1 text-3xl font-semibold">{todayMinutes}</p><p className="text-xs text-muted">分钟</p></Card>
+          <Card><BarChart3 className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">本周完成率</p><p className="mt-1 text-3xl font-semibold">{weeklyCompletion}%</p><p className="text-xs text-muted">{weeklyDone}/{weeklyTasks.length} 项</p></Card>
+          <Card><Flame className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">连续学习天数</p><p className="mt-1 text-3xl font-semibold">{streak}</p><p className="text-xs text-muted">天</p></Card>
+          <Card><Trophy className="h-5 w-5 text-accent" /><p className="mt-3 text-sm text-muted">今日完成任务</p><p className="mt-1 text-3xl font-semibold">{todaysDoneTasks.length}</p><p className="text-xs text-muted">项</p></Card>
+        </div>
       </div>
 
       <Card>

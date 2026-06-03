@@ -5,7 +5,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "BIT 887 Study Dashboard",
-  description: "考研每日任务、错题、887 知识卡片和复盘管理"
+  description: "考研每日进度、计划任务、集训营作业和复盘管理"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

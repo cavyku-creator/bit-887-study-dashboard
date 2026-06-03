@@ -3,28 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpen,
   CalendarCheck,
   CheckSquare,
   GraduationCap,
   Home,
   LayoutDashboard,
   LogOut,
-  NotebookPen,
-  Sigma,
-  Languages
+  NotebookPen
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 
 const navItems = [
-  { href: "/", label: "今日任务", icon: Home },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tasks", label: "任务管理", icon: CheckSquare },
-  { href: "/math-errors", label: "数学错题", icon: Sigma },
-  { href: "/887", label: "887卡片", icon: BookOpen },
-  { href: "/english", label: "英语", icon: Languages },
-  { href: "/camp", label: "集训营", icon: GraduationCap },
-  { href: "/review", label: "复盘", icon: NotebookPen }
+  { href: "/", label: "今日进度", icon: Home },
+  { href: "/tasks", label: "计划任务", icon: CheckSquare },
+  { href: "/camp", label: "集训营作业", icon: GraduationCap },
+  { href: "/review", label: "复盘", icon: NotebookPen },
+  { href: "/dashboard", label: "进度总览", icon: LayoutDashboard }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

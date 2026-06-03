@@ -1,113 +1,111 @@
 "use client";
 
-import { RotateCcw, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Badge, Card, Field, PageHeader, buttonClass, ghostButtonClass, inputClass } from "@/components/ui";
+import Link from "next/link";
+import { CheckCircle2, Circle, Plus, RadioTower } from "lucide-react";
+import { Badge, Card, PageHeader, ProgressRing, buttonClass, ghostButtonClass } from "@/components/ui";
 import { Protected } from "@/components/Protected";
-import { cardModules } from "@/lib/labels";
-import { todayISO } from "@/lib/date";
+import { percent, todayISO } from "@/lib/date";
+import { subjectColors, subjects } from "@/lib/labels";
 import { useTable } from "@/lib/use-table";
-import type { CardModule, KnowledgeCard } from "@/lib/types";
 
-type Draft = Pick<KnowledgeCard, "module" | "front" | "back" | "difficulty" | "next_review_date" | "mastered">;
+const modules = ["半导体物理", "半导体工艺", "电子电路基础"];
 
-const initial: Draft = {
-  module: "semiconductor_physics",
-  front: "",
-  back: "",
-  difficulty: 3,
-  next_review_date: todayISO(),
-  mastered: false
-};
-
-export default function Cards887Page() {
+export default function Professional887Page() {
   return (
     <Protected>
-      <CardsView />
+      <Professional887View />
     </Protected>
   );
 }
 
-function CardsView() {
-  const [module, setModule] = useState<CardModule | "all">("all");
-  const [draft, setDraft] = useState<Draft>(initial);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
-  const filters = useMemo(() => [{ column: "module", value: module === "all" ? "" : module }], [module]);
-  const { rows, insert, update, remove } = useTable("knowledge_cards", { filters, orderBy: "next_review_date", ascending: true });
+function Professional887View() {
+  const today = todayISO();
+  const { rows: tasks, update } = useTable("tasks", {
+    filters: [
+      { column: "date", value: today },
+      { column: "subject", value: "professional_887" }
+    ],
+    orderBy: "created_at",
+    ascending: true
+  });
 
-  async function save() {
-    if (!draft.front.trim() || !draft.back.trim()) return;
-    const payload = { ...draft, difficulty: Number(draft.difficulty), next_review_date: draft.next_review_date || null };
-    const result = editingId ? await update(editingId, payload) : await insert(payload);
-    if (!result.error) {
-      setDraft(initial);
-      setEditingId(null);
-    }
-  }
-
-  function edit(row: KnowledgeCard) {
-    setEditingId(row.id);
-    setDraft({
-      module: row.module,
-      front: row.front,
-      back: row.back,
-      difficulty: row.difficulty,
-      next_review_date: row.next_review_date ?? "",
-      mastered: row.mastered
-    });
-  }
+  const activeTasks = tasks.filter((task) => task.status !== "skipped");
+  const doneTasks = activeTasks.filter((task) => task.status === "done");
+  const completion = percent(doneTasks.length, activeTasks.length);
+  const nextTask = activeTasks.find((task) => task.status === "doing") ?? activeTasks.find((task) => task.status === "todo");
 
   return (
     <div className="space-y-5">
-      <PageHeader title="887 知识卡片" description="半导体物理、工艺、电子电路基础的问答卡片。" />
-      <Card>
-        <Field label="模块筛选">
-          <select className={inputClass} onChange={(event) => setModule(event.target.value as CardModule | "all")} value={module}>
-            <option value="all">全部模块</option>
-            {Object.entries(cardModules).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </Field>
-      </Card>
+      <PageHeader title="887 专业课计划" description="不做卡片资料库，只看今天 887 是否推进。" />
 
-      <Card>
-        <h2 className="mb-4 text-lg font-semibold">{editingId ? "编辑卡片" : "新增卡片"}</h2>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field label="模块">
-            <select className={inputClass} onChange={(event) => setDraft({ ...draft, module: event.target.value as CardModule })} value={draft.module}>
-              {Object.entries(cardModules).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </Field>
-          <Field label="难度 1-5"><input className={inputClass} max={5} min={1} onChange={(event) => setDraft({ ...draft, difficulty: Number(event.target.value) })} type="number" value={draft.difficulty} /></Field>
-          <Field label="下次复习"><input className={inputClass} onChange={(event) => setDraft({ ...draft, next_review_date: event.target.value })} type="date" value={draft.next_review_date ?? ""} /></Field>
-          <label className="flex items-center gap-2 pt-7 text-sm font-medium"><input checked={draft.mastered} onChange={(event) => setDraft({ ...draft, mastered: event.target.checked })} type="checkbox" />已掌握</label>
-          <Field label="正面问题"><textarea className={inputClass} onChange={(event) => setDraft({ ...draft, front: event.target.value })} value={draft.front} /></Field>
-          <Field label="背面答案"><textarea className={inputClass} onChange={(event) => setDraft({ ...draft, back: event.target.value })} value={draft.back} /></Field>
-        </div>
-        <button className={`${buttonClass} mt-4`} onClick={save} type="button">{editingId ? "保存卡片" : "新增卡片"}</button>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {rows.map((row) => (
-          <Card key={row.id}>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-line bg-paper text-muted">{cardModules[row.module]}</Badge>
-              <Badge className="border-line bg-paper text-muted">难度 {row.difficulty}</Badge>
-              <Badge className={row.mastered ? "border-professional/20 bg-professional/10 text-professional" : "border-politics/20 bg-politics/10 text-politics"}>{row.mastered ? "已掌握" : "需复习"}</Badge>
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <Card className="grid place-items-center gap-4">
+          <ProgressRing label="887 今日" size="md" tone="#3c7b4f" value={completion} />
+          <Badge className={subjectColors.professional_887}>{subjects.professional_887}</Badge>
+        </Card>
+        <Card className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm text-muted">下一项 887</p>
+              <h2 className="mt-2 text-2xl font-semibold">{nextTask?.title ?? "今天还没有 887 任务"}</h2>
+              <p className="mt-2 text-sm text-muted">{nextTask ? `${nextTask.chapter || "未填模块"} · ${nextTask.estimated_minutes} 分钟` : "去计划任务里添加一项专业课任务即可。"}</p>
             </div>
-            <div className="min-h-28 rounded-md border border-line bg-paper p-4">
-              <p className="whitespace-pre-wrap text-sm leading-6">{flipped[row.id] ? row.back : row.front}</p>
-            </div>
-            <p className="mt-2 text-xs text-muted">下次复习：{row.next_review_date || "未设置"}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button className={ghostButtonClass} onClick={() => setFlipped({ ...flipped, [row.id]: !flipped[row.id] })} type="button"><RotateCcw className="h-4 w-4" />翻转</button>
-              <button className={ghostButtonClass} onClick={() => update(row.id, { mastered: !row.mastered })} type="button">{row.mastered ? "需要复习" : "已掌握"}</button>
-              <button className={ghostButtonClass} onClick={() => edit(row)} type="button">编辑</button>
-              <button className={ghostButtonClass} onClick={() => remove(row.id)} type="button"><Trash2 className="h-4 w-4" /></button>
-            </div>
-          </Card>
-        ))}
+            <RadioTower className="h-8 w-8 text-professional" />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {nextTask ? (
+              <button className={buttonClass} onClick={() => update(nextTask.id, { status: "done" })} type="button">
+                <CheckCircle2 className="h-4 w-4" />
+                完成这项
+              </button>
+            ) : null}
+            <Link className={ghostButtonClass} href="/tasks">
+              <Plus className="h-4 w-4" />
+              添加 887 任务
+            </Link>
+          </div>
+        </Card>
       </div>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-semibold">模块提醒</h2>
+        <div className="grid gap-3 md:grid-cols-3">
+          {modules.map((module) => {
+            const count = activeTasks.filter((task) => (task.chapter || task.title).includes(module.replace("半导体", "")) || (task.chapter || "").includes(module)).length;
+            return (
+              <div className="rounded-md border border-line bg-paper p-3" key={module}>
+                <p className="font-medium">{module}</p>
+                <p className="mt-1 text-sm text-muted">今日相关任务 {count} 项</p>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-semibold">今日 887 清单</h2>
+        {activeTasks.length === 0 ? (
+          <p className="text-sm text-muted">今天没有专业课任务。建议只加 1-2 个具体动作，例如“PN 结形成机制 30 分钟”。</p>
+        ) : (
+          <div className="divide-y divide-line rounded-md border border-line">
+            {activeTasks.map((task) => (
+              <div className="flex items-start gap-3 p-3" key={task.id}>
+                <button
+                  className="mt-0.5 text-professional"
+                  onClick={() => update(task.id, { status: task.status === "done" ? "todo" : "done" })}
+                  type="button"
+                >
+                  {task.status === "done" ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+                </button>
+                <div>
+                  <p className={`font-medium ${task.status === "done" ? "text-muted line-through" : ""}`}>{task.title}</p>
+                  <p className="mt-1 text-sm text-muted">{task.material || "未填资料"} · {task.chapter || "未填模块"} · {task.estimated_minutes} 分钟</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

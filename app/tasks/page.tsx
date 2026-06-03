@@ -81,7 +81,7 @@ function TasksView() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="任务管理" description="新增、编辑、删除每日任务，按科目和日期过滤。" />
+      <PageHeader title="计划任务" description="维护每天真正要推进的短清单，首页会自动汇总进度。" />
 
       <Card>
         <div className="grid gap-3 md:grid-cols-4">
