@@ -5,10 +5,10 @@ import { useMemo, useState } from "react";
 import { Badge, Card, PageHeader, ProgressRing, buttonClass, ghostButtonClass } from "@/components/ui";
 import { Protected } from "@/components/Protected";
 import { daysUntil, formatChineseDate, percent, todayISO } from "@/lib/date";
-import { subjectColors, subjects, taskModes } from "@/lib/labels";
+import { subjectColors, subjects } from "@/lib/labels";
 import { defaultTaskTemplates } from "@/lib/templates";
 import { useTable } from "@/lib/use-table";
-import type { Subject, Task, TaskMode, TaskStatus } from "@/lib/types";
+import type { Subject, Task, TaskStatus } from "@/lib/types";
 
 const subjectOrder: Subject[] = ["math", "english", "politics", "professional_887"];
 const focusBlocks = [
@@ -27,8 +27,8 @@ export default function HomePage() {
 
 function TodayView() {
   const today = todayISO();
-  const [mode, setMode] = useState<TaskMode>("standard");
-  const filters = useMemo(() => [{ column: "date", value: today }, { column: "mode", value: mode }], [mode, today]);
+  const [selectedSubject, setSelectedSubject] = useState<Subject>("math");
+  const filters = useMemo(() => [{ column: "date", value: today }], [today]);
   const { rows: tasks, loading, error, insert, update } = useTable("tasks", {
     filters,
     orderBy: "created_at",
@@ -42,9 +42,10 @@ function TodayView() {
   const plannedMinutes = activeTasks.reduce((sum, task) => sum + task.estimated_minutes, 0);
   const doneMinutes = doneTasks.reduce((sum, task) => sum + task.estimated_minutes, 0);
   const nextTask = tasks.find((task) => task.status === "doing") ?? tasks.find((task) => task.status === "todo");
+  const selectedTasks = tasks.filter((task) => task.subject === selectedSubject);
 
   async function addTemplateTasks() {
-    for (const template of defaultTaskTemplates.filter((item) => item.mode === mode)) {
+    for (const template of defaultTaskTemplates.filter((item) => item.mode === "standard")) {
       await insert({ ...template, date: today });
     }
   }
@@ -95,7 +96,7 @@ function TodayView() {
               ) : (
                 <button className={buttonClass} onClick={addTemplateTasks} type="button">
                   <Plus className="h-4 w-4" />
-                  添加{taskModes[mode]}模板
+                  添加今日模板
                 </button>
               )}
             </div>
@@ -122,7 +123,6 @@ function TodayView() {
               <h2 className="text-lg font-semibold">四科进度</h2>
               <p className="mt-1 text-sm text-muted">按今天任务自动计算，不需要额外填表。</p>
             </div>
-            <ModeSwitch mode={mode} setMode={setMode} />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {subjectOrder.map((subject) => {
@@ -167,7 +167,7 @@ function TodayView() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">今天的清单</h2>
-            <p className="mt-1 text-sm text-muted">保持短清单，完成一项划掉一项。</p>
+            <p className="mt-1 text-sm text-muted">按科目切换，完成一项划掉一项。</p>
           </div>
           {tasks.length > 0 ? (
             <button className={ghostButtonClass} onClick={addTemplateTasks} type="button">
@@ -176,20 +176,25 @@ function TodayView() {
             </button>
           ) : null}
         </div>
+        <SubjectTabs selectedSubject={selectedSubject} setSelectedSubject={setSelectedSubject} tasks={tasks} />
 
         {error ? <p className="rounded-md border border-politics/20 bg-politics/10 p-3 text-sm text-politics">{error}</p> : null}
         {loading ? <p className="text-sm text-muted">正在加载任务...</p> : null}
         {!loading && tasks.length === 0 ? (
           <div className="rounded-md border border-dashed border-line bg-paper p-4">
-            <p className="text-sm text-muted">今天还没有{taskModes[mode]}。先生成一组模板，再删改成你真实要做的事。</p>
+            <p className="text-sm text-muted">今天还没有任务。先生成一组模板，再删改成你真实要做的事。</p>
             <button className={`${ghostButtonClass} mt-3`} onClick={addTemplateTasks} type="button">
               <Plus className="h-4 w-4" />
               添加模板任务
             </button>
           </div>
+        ) : !loading && selectedTasks.length === 0 ? (
+          <div className="rounded-md border border-dashed border-line bg-paper p-4">
+            <p className="text-sm text-muted">{subjects[selectedSubject]} 今天还没有任务。</p>
+          </div>
         ) : (
           <div className="divide-y divide-line rounded-md border border-line">
-            {tasks.map((task) => (
+            {selectedTasks.map((task) => (
               <div className="flex items-start gap-3 p-3" key={task.id}>
                 <button
                   aria-label="切换完成状态"
@@ -219,6 +224,39 @@ function TodayView() {
   );
 }
 
+function SubjectTabs({
+  selectedSubject,
+  setSelectedSubject,
+  tasks
+}: {
+  selectedSubject: Subject;
+  setSelectedSubject: (subject: Subject) => void;
+  tasks: Task[];
+}) {
+  return (
+    <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+      {subjectOrder.map((subject) => {
+        const total = tasks.filter((task) => task.subject === subject && task.status !== "skipped").length;
+        const done = tasks.filter((task) => task.subject === subject && task.status === "done").length;
+        const active = selectedSubject === subject;
+        return (
+          <button
+            className={`rounded-md border p-3 text-left transition ${
+              active ? "border-accent bg-accent text-white" : "border-line bg-paper text-ink hover:border-accent"
+            }`}
+            key={subject}
+            onClick={() => setSelectedSubject(subject)}
+            type="button"
+          >
+            <p className="font-medium">{subjects[subject]}</p>
+            <p className={`mt-1 text-xs ${active ? "text-white/80" : "text-muted"}`}>{done}/{total} 项</p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-line bg-paper p-3">
@@ -236,23 +274,6 @@ function Countdown({ label, value, date }: { label: string; value: number; date:
         <p className="text-xs text-muted">{date}</p>
       </div>
       <p className="text-2xl font-semibold">{value} 天</p>
-    </div>
-  );
-}
-
-function ModeSwitch({ mode, setMode }: { mode: TaskMode; setMode: (mode: TaskMode) => void }) {
-  return (
-    <div className="flex rounded-md border border-line bg-paper p-1">
-      {(["standard", "minimum"] as TaskMode[]).map((item) => (
-        <button
-          className={`rounded px-3 py-1.5 text-sm ${mode === item ? "bg-panel text-ink shadow-sm" : "text-muted"}`}
-          key={item}
-          onClick={() => setMode(item)}
-          type="button"
-        >
-          {taskModes[item]}
-        </button>
-      ))}
     </div>
   );
 }

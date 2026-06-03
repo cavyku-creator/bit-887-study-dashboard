@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Home,
   LayoutDashboard,
+  Languages,
   LogOut,
   NotebookPen
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { useAuth } from "./AuthProvider";
 const navItems = [
   { href: "/", label: "今日进度", icon: Home },
   { href: "/tasks", label: "计划任务", icon: CheckSquare },
+  { href: "/english", label: "单词统计", icon: Languages },
   { href: "/camp", label: "集训营作业", icon: GraduationCap },
   { href: "/review", label: "复盘", icon: NotebookPen },
   { href: "/dashboard", label: "进度总览", icon: LayoutDashboard }
