@@ -101,7 +101,7 @@ function VocabularyStatsView() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="单词统计" description="记录不背单词进度，并把唐迟阅读、田静长难句纳入每日英语计划。" />
+      <PageHeader title="单词统计" description="记录不背单词进度，并把唐迟阅读、田静语法纳入每日英语计划。" />
 
       <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <Card className="grid place-items-center gap-4">
@@ -134,8 +134,8 @@ function VocabularyStatsView() {
         <div className="grid gap-3 md:grid-cols-2">
           <BookPlanCard
             title="田静《句句真研》"
-            focus="长难句基本功"
-            steps={["每天 2 句", "先划主干，再翻译", "记录看不懂的结构"]}
+            focus="语法体系与句法分析"
+            steps={["每天 1 个语法点", "拆 2 句句子结构", "记录看不懂的从句/修饰关系"]}
             minutes="约 35 分钟"
           />
           <BookPlanCard
@@ -145,7 +145,7 @@ function VocabularyStatsView() {
             minutes="约 55 分钟"
           />
         </div>
-        <p className="mt-3 text-sm text-muted">建议顺序：先用句句真研稳住句子结构，再做阅读的逻辑；阅读不要贪多，重在复盘。</p>
+        <p className="mt-3 text-sm text-muted">建议顺序：先用句句真研补语法和句法，再做阅读的逻辑；阅读不要贪多，重在复盘。</p>
       </Card>
 
       <Card>

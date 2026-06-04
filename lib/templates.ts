@@ -5,9 +5,9 @@ export type TaskTemplate = Pick<Task, "subject" | "title" | "material" | "chapte
 export const englishBookPlanTemplates: TaskTemplate[] = [
   {
     subject: "english",
-    title: "田静句句真研：长难句2句",
+    title: "田静句句真研：语法+句法分析2句",
     material: "田静《句句真研》",
-    chapter: "长难句精析",
+    chapter: "语法与句法分析",
     estimated_minutes: 35,
     mode: "standard",
     status: "todo"
