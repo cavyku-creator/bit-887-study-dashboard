@@ -4,10 +4,10 @@ import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge, Card, Field, PageHeader, buttonClass, ghostButtonClass, inputClass } from "@/components/ui";
 import { Protected } from "@/components/Protected";
-import { subjectColors, subjects, taskModes, taskStatuses } from "@/lib/labels";
+import { subjectColors, subjects, taskStatuses } from "@/lib/labels";
 import { todayISO } from "@/lib/date";
 import { useTable } from "@/lib/use-table";
-import type { Subject, Task, TaskMode, TaskStatus } from "@/lib/types";
+import type { Subject, Task, TaskStatus } from "@/lib/types";
 
 type TaskDraft = Pick<Task, "subject" | "title" | "material" | "chapter" | "estimated_minutes" | "date" | "status" | "mode">;
 
@@ -137,15 +137,6 @@ function TasksView() {
               ))}
             </select>
           </Field>
-          <Field label="任务模式">
-            <select className={inputClass} onChange={(event) => setDraft({ ...draft, mode: event.target.value as TaskMode })} value={draft.mode}>
-              {Object.entries(taskModes).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </Field>
         </div>
         {message ? <p className="mt-3 rounded-md border border-line bg-paper p-3 text-sm text-muted">{message}</p> : null}
         <div className="mt-4 flex flex-wrap gap-3">
@@ -173,7 +164,6 @@ function TasksView() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-medium">{task.title}</h3>
                   <Badge className={subjectColors[task.subject]}>{subjects[task.subject]}</Badge>
-                  <Badge className="border-line bg-paper text-muted">{taskModes[task.mode]}</Badge>
                   <Badge className="border-line bg-paper text-muted">{taskStatuses[task.status]}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-muted">
@@ -182,13 +172,15 @@ function TasksView() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button className={ghostButtonClass} onClick={() => update(task.id, { status: task.status === "done" ? "todo" : "done" })} type="button">
-                  完成
+                  {task.status === "done" ? "恢复待做" : "标为完成"}
                 </button>
                 <button className={ghostButtonClass} onClick={() => edit(task)} type="button">
                   <Pencil className="h-4 w-4" />
+                  编辑
                 </button>
                 <button className={ghostButtonClass} onClick={() => remove(task.id)} type="button">
                   <Trash2 className="h-4 w-4" />
+                  删除
                 </button>
               </div>
             </div>

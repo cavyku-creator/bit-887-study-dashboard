@@ -65,7 +65,7 @@ function ReviewView() {
           <Card key={row.id}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2"><h3 className="font-medium">{row.date}</h3><Badge className="border-line bg-paper text-muted">{reviewTypes[row.type]}</Badge></div>
-              <div className="flex gap-2"><button className={ghostButtonClass} onClick={() => edit(row)} type="button">编辑</button><button className={ghostButtonClass} onClick={() => remove(row.id)} type="button"><Trash2 className="h-4 w-4" /></button></div>
+              <div className="flex gap-2"><button className={ghostButtonClass} onClick={() => edit(row)} type="button">编辑</button><button className={ghostButtonClass} onClick={() => remove(row.id)} type="button"><Trash2 className="h-4 w-4" />删除</button></div>
             </div>
             <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
               <p><span className="text-muted">完成：</span>{row.completed || "未填"}</p>

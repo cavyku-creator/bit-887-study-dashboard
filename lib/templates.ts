@@ -44,9 +44,9 @@ export const defaultTaskTemplates: TaskTemplate[] = [
   },
   {
     subject: "english",
-    title: "单词100个",
-    material: "词汇",
-    chapter: "每日词汇",
+    title: "不背单词：新词40+复习80",
+    material: "不背单词",
+    chapter: "7941词进度",
     estimated_minutes: 35,
     mode: "minimum",
     status: "todo"
@@ -75,6 +75,15 @@ export const defaultTaskTemplates: TaskTemplate[] = [
     title: "MOSFET工作区",
     material: "半导体器件",
     chapter: "MOSFET",
+    estimated_minutes: 45,
+    mode: "standard",
+    status: "todo"
+  },
+  {
+    subject: "professional_887",
+    title: "半导体工艺：氧化/光刻/掺杂流程",
+    material: "半导体工艺",
+    chapter: "基础工艺流程",
     estimated_minutes: 45,
     mode: "standard",
     status: "todo"

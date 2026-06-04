@@ -142,7 +142,7 @@ function CampView() {
           <Card key={row.id}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div><h3 className="font-medium">{row.date} · {row.course}</h3><p className="mt-1 text-sm text-muted">听懂程度 {row.understanding}/5</p></div>
-              <div className="flex gap-2"><button className={ghostButtonClass} onClick={() => edit(row)} type="button"><Pencil className="h-4 w-4" />编辑</button><button className={ghostButtonClass} onClick={() => remove(row.id)} type="button"><Trash2 className="h-4 w-4" /></button></div>
+              <div className="flex gap-2"><button className={ghostButtonClass} onClick={() => edit(row)} type="button"><Pencil className="h-4 w-4" />编辑</button><button className={ghostButtonClass} onClick={() => remove(row.id)} type="button"><Trash2 className="h-4 w-4" />删除</button></div>
             </div>
             <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
               <p><span className="text-muted">进度：</span>{row.teacher_progress || "未填"}</p>

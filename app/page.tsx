@@ -45,8 +45,17 @@ function TodayView() {
   const selectedTasks = tasks.filter((task) => task.subject === selectedSubject);
 
   async function addTemplateTasks() {
-    for (const template of defaultTaskTemplates.filter((item) => item.mode === "standard")) {
-      await insert({ ...template, date: today });
+    await addTemplates(defaultTaskTemplates);
+  }
+
+  async function addSelectedSubjectTemplates() {
+    await addTemplates(defaultTaskTemplates.filter((template) => template.subject === selectedSubject));
+  }
+
+  async function addTemplates(templates: typeof defaultTaskTemplates) {
+    for (const template of templates) {
+      const exists = tasks.some((task) => task.title === template.title && task.subject === template.subject);
+      if (!exists) await insert({ ...template, date: today });
     }
   }
 
@@ -86,17 +95,17 @@ function TodayView() {
                 <>
                   <button className={buttonClass} onClick={() => setStatus(nextTask, "done")} type="button">
                     <CheckCircle2 className="h-4 w-4" />
-                    完成下一件事
+                    完成
                   </button>
                   <button className={ghostButtonClass} onClick={() => setStatus(nextTask, "doing")} type="button">
                     <TimerReset className="h-4 w-4" />
-                    标记进行中
+                    开始做
                   </button>
                 </>
               ) : (
                 <button className={buttonClass} onClick={addTemplateTasks} type="button">
                   <Plus className="h-4 w-4" />
-                  添加今日模板
+                  生成今日计划
                 </button>
               )}
             </div>
@@ -172,7 +181,7 @@ function TodayView() {
           {tasks.length > 0 ? (
             <button className={ghostButtonClass} onClick={addTemplateTasks} type="button">
               <Plus className="h-4 w-4" />
-              追加模板
+              补齐模板任务
             </button>
           ) : null}
         </div>
@@ -185,12 +194,16 @@ function TodayView() {
             <p className="text-sm text-muted">今天还没有任务。先生成一组模板，再删改成你真实要做的事。</p>
             <button className={`${ghostButtonClass} mt-3`} onClick={addTemplateTasks} type="button">
               <Plus className="h-4 w-4" />
-              添加模板任务
+              生成今日计划
             </button>
           </div>
         ) : !loading && selectedTasks.length === 0 ? (
           <div className="rounded-md border border-dashed border-line bg-paper p-4">
             <p className="text-sm text-muted">{subjects[selectedSubject]} 今天还没有任务。</p>
+            <button className={`${ghostButtonClass} mt-3`} onClick={addSelectedSubjectTemplates} type="button">
+              <Plus className="h-4 w-4" />
+              添加{subjects[selectedSubject]}模板
+            </button>
           </div>
         ) : (
           <div className="divide-y divide-line rounded-md border border-line">

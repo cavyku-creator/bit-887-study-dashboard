@@ -128,7 +128,7 @@ function VocabularyStatsView() {
           </div>
           <button className={ghostButtonClass} onClick={addBookPlanToToday} type="button">
             <ListPlus className="h-4 w-4" />
-            加入今日英语任务
+            补齐今日英语计划
           </button>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
@@ -192,7 +192,7 @@ function VocabularyStatsView() {
                 </div>
                 <div className="flex gap-2">
                   <button className={ghostButtonClass} onClick={() => fillFromRow(row)} type="button">编辑</button>
-                  <button className={ghostButtonClass} onClick={() => stats.remove(row.id)} type="button"><Trash2 className="h-4 w-4" /></button>
+                  <button className={ghostButtonClass} onClick={() => stats.remove(row.id)} type="button"><Trash2 className="h-4 w-4" />删除</button>
                 </div>
               </div>
             ))}

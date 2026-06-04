@@ -36,7 +36,7 @@ function Professional887View() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="887 专业课计划" description="不做卡片资料库，只看今天 887 是否推进。" />
+      <PageHeader title="887 专业课计划" description="按半导体物理、半导体工艺、电子电路基础三条线推进。" />
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <Card className="grid place-items-center gap-4">
@@ -48,7 +48,7 @@ function Professional887View() {
             <div>
               <p className="text-sm text-muted">下一项 887</p>
               <h2 className="mt-2 text-2xl font-semibold">{nextTask?.title ?? "今天还没有 887 任务"}</h2>
-              <p className="mt-2 text-sm text-muted">{nextTask ? `${nextTask.chapter || "未填模块"} · ${nextTask.estimated_minutes} 分钟` : "去计划任务里添加一项专业课任务即可。"}</p>
+              <p className="mt-2 text-sm text-muted">{nextTask ? `${nextTask.chapter || "未填模块"} · ${nextTask.estimated_minutes} 分钟` : "优先从物理、工艺、电路里各挑一个薄弱点。"}</p>
             </div>
             <RadioTower className="h-8 w-8 text-professional" />
           </div>
@@ -56,12 +56,12 @@ function Professional887View() {
             {nextTask ? (
               <button className={buttonClass} onClick={() => update(nextTask.id, { status: "done" })} type="button">
                 <CheckCircle2 className="h-4 w-4" />
-                完成这项
+                完成
               </button>
             ) : null}
             <Link className={ghostButtonClass} href="/tasks">
               <Plus className="h-4 w-4" />
-              添加 887 任务
+              添加专业课任务
             </Link>
           </div>
         </Card>
@@ -85,7 +85,7 @@ function Professional887View() {
       <Card>
         <h2 className="mb-4 text-lg font-semibold">今日 887 清单</h2>
         {activeTasks.length === 0 ? (
-          <p className="text-sm text-muted">今天没有专业课任务。建议只加 1-2 个具体动作，例如“PN 结形成机制 30 分钟”。</p>
+          <p className="text-sm text-muted">今天没有专业课任务。建议只加 1-2 个具体动作，例如“PN 结形成机制 30 分钟”或“氧化/光刻/掺杂流程复盘”。</p>
         ) : (
           <div className="divide-y divide-line rounded-md border border-line">
             {activeTasks.map((task) => (
