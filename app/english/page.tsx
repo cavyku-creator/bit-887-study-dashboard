@@ -1,10 +1,11 @@
 "use client";
 
-import { BarChart3, CalendarDays, CheckCircle2, RotateCcw, Save, Trash2 } from "lucide-react";
+import { BarChart3, BookOpenCheck, CalendarDays, CheckCircle2, ListPlus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Card, Field, PageHeader, ProgressRing, buttonClass, ghostButtonClass, inputClass } from "@/components/ui";
 import { Protected } from "@/components/Protected";
 import { percent, todayISO } from "@/lib/date";
+import { englishBookPlanTemplates } from "@/lib/templates";
 import { useTable } from "@/lib/use-table";
 import type { EnglishDailyStat } from "@/lib/types";
 
@@ -33,6 +34,15 @@ export default function EnglishPage() {
 function VocabularyStatsView() {
   const [draft, setDraft] = useState<StatDraft>(initialStat);
   const stats = useTable("english_daily_stats", { orderBy: "date", ascending: false });
+  const today = todayISO();
+  const englishTasks = useTable("tasks", {
+    filters: [
+      { column: "date", value: today },
+      { column: "subject", value: "english" }
+    ],
+    orderBy: "created_at",
+    ascending: true
+  });
 
   const summary = useMemo(() => {
     const today = todayISO();
@@ -82,9 +92,16 @@ function VocabularyStatsView() {
     });
   }
 
+  async function addBookPlanToToday() {
+    for (const task of englishBookPlanTemplates) {
+      const exists = englishTasks.rows.some((row) => row.title === task.title && row.material === task.material);
+      if (!exists) await englishTasks.insert({ ...task, date: today });
+    }
+  }
+
   return (
     <div className="space-y-5">
-      <PageHeader title="单词统计" description="记录每天不背单词的新词、复习词和总进度。目标词量 7941。" />
+      <PageHeader title="单词统计" description="记录不背单词进度，并把唐迟阅读、田静长难句纳入每日英语计划。" />
 
       <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <Card className="grid place-items-center gap-4">
@@ -102,6 +119,34 @@ function VocabularyStatsView() {
           <Metric icon={<CheckCircle2 className="h-5 w-5 text-english" />} label="累计复习" value={summary.reviewed} suffix="词" />
         </div>
       </section>
+
+      <Card>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">英语书目计划</h2>
+            <p className="mt-1 text-sm text-muted">不录入书中内容，只把每天要做的学习动作放进计划。</p>
+          </div>
+          <button className={ghostButtonClass} onClick={addBookPlanToToday} type="button">
+            <ListPlus className="h-4 w-4" />
+            加入今日英语任务
+          </button>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <BookPlanCard
+            title="田静《句句真研》"
+            focus="长难句基本功"
+            steps={["每天 2 句", "先划主干，再翻译", "记录看不懂的结构"]}
+            minutes="约 35 分钟"
+          />
+          <BookPlanCard
+            title="唐迟《阅读的逻辑》"
+            focus="阅读方法与真题拆解"
+            steps={["每天 1 个方法点", "配 1 篇阅读精读", "复盘错题定位和选项陷阱"]}
+            minutes="约 55 分钟"
+          />
+        </div>
+        <p className="mt-3 text-sm text-muted">建议顺序：先用句句真研稳住句子结构，再做阅读的逻辑；阅读不要贪多，重在复盘。</p>
+      </Card>
 
       <Card>
         <div className="mb-4">
@@ -154,6 +199,24 @@ function VocabularyStatsView() {
           </div>
         )}
       </Card>
+    </div>
+  );
+}
+
+function BookPlanCard({ title, focus, steps, minutes }: { title: string; focus: string; steps: string[]; minutes: string }) {
+  return (
+    <div className="rounded-md border border-line bg-paper p-4">
+      <BookOpenCheck className="h-5 w-5 text-english" />
+      <h3 className="mt-3 font-semibold">{title}</h3>
+      <p className="mt-1 text-sm text-muted">{focus} · {minutes}</p>
+      <div className="mt-3 space-y-2">
+        {steps.map((step) => (
+          <div className="flex items-center gap-2 text-sm" key={step}>
+            <span className="h-1.5 w-1.5 rounded-full bg-english" />
+            {step}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

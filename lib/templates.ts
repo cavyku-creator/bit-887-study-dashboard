@@ -1,6 +1,27 @@
 import type { Task } from "./types";
 
-type TaskTemplate = Pick<Task, "subject" | "title" | "material" | "chapter" | "estimated_minutes" | "mode" | "status">;
+export type TaskTemplate = Pick<Task, "subject" | "title" | "material" | "chapter" | "estimated_minutes" | "mode" | "status">;
+
+export const englishBookPlanTemplates: TaskTemplate[] = [
+  {
+    subject: "english",
+    title: "田静句句真研：长难句2句",
+    material: "田静《句句真研》",
+    chapter: "长难句精析",
+    estimated_minutes: 35,
+    mode: "standard",
+    status: "todo"
+  },
+  {
+    subject: "english",
+    title: "唐迟阅读的逻辑：方法点+阅读1篇",
+    material: "唐迟《阅读的逻辑》",
+    chapter: "阅读方法与真题拆解",
+    estimated_minutes: 55,
+    mode: "standard",
+    status: "todo"
+  }
+];
 
 export const defaultTaskTemplates: TaskTemplate[] = [
   {
@@ -30,15 +51,7 @@ export const defaultTaskTemplates: TaskTemplate[] = [
     mode: "minimum",
     status: "todo"
   },
-  {
-    subject: "english",
-    title: "长难句2句",
-    material: "长难句",
-    chapter: "语法分析",
-    estimated_minutes: 40,
-    mode: "standard",
-    status: "todo"
-  },
+  ...englishBookPlanTemplates,
   {
     subject: "politics",
     title: "马原基础框架20分钟",
