@@ -29,6 +29,8 @@ export default function HomePage() {
 function TodayView() {
   const today = todayISO();
   const [selectedSubject, setSelectedSubject] = useState<Subject>("math");
+  const [pendingStatusTaskId, setPendingStatusTaskId] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const filters = useMemo(() => [{ column: "date", value: today }], [today]);
   const { rows: tasks, loading, error, insert, update } = useTable("tasks", {
     filters,
@@ -43,6 +45,7 @@ function TodayView() {
   const plannedMinutes = activeTasks.reduce((sum, task) => sum + task.estimated_minutes, 0);
   const doneMinutes = doneTasks.reduce((sum, task) => sum + task.estimated_minutes, 0);
   const nextTask = tasks.find((task) => task.status === "doing") ?? tasks.find((task) => task.status === "todo");
+  const nextTaskIsPending = nextTask ? pendingStatusTaskId === nextTask.id : false;
   const selectedTasks = tasks.filter((task) => task.subject === selectedSubject);
 
   async function addTemplateTasks() {
@@ -61,7 +64,11 @@ function TodayView() {
   }
 
   async function setStatus(task: Task, status: TaskStatus) {
-    await update(task.id, { status });
+    setPendingStatusTaskId(task.id);
+    setMutationError(null);
+    const result = await update(task.id, { status });
+    if (result.error) setMutationError(result.error);
+    setPendingStatusTaskId(null);
   }
 
   return (
@@ -76,7 +83,10 @@ function TodayView() {
           <div className="space-y-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-muted">下一件事</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-muted">{nextTask?.status === "doing" ? "正在进行" : "下一件事"}</p>
+                  {nextTask?.status === "doing" ? <Badge className="border-accent/20 bg-accent/10 text-accent">进行中</Badge> : null}
+                </div>
                 <h2 className="mt-2 text-2xl font-semibold leading-tight">{nextTask?.title ?? "先把今天的计划放进来"}</h2>
                 <p className="mt-2 text-sm text-muted">
                   {nextTask ? `${subjects[nextTask.subject]} · ${nextTask.estimated_minutes} 分钟` : "建议从模板或任务计划里添加 3-6 件真正要做的事"}
@@ -94,13 +104,18 @@ function TodayView() {
             <div className="flex flex-wrap gap-3">
               {nextTask ? (
                 <>
-                  <button className={buttonClass} onClick={() => setStatus(nextTask, "done")} type="button">
+                  <button className={buttonClass} disabled={nextTaskIsPending} onClick={() => setStatus(nextTask, "done")} type="button">
                     <CheckCircle2 className="h-4 w-4" />
-                    完成
+                    {nextTaskIsPending ? "保存中" : "完成"}
                   </button>
-                  <button className={ghostButtonClass} onClick={() => setStatus(nextTask, "doing")} type="button">
+                  <button
+                    className={ghostButtonClass}
+                    disabled={nextTask.status === "doing" || nextTaskIsPending}
+                    onClick={() => setStatus(nextTask, "doing")}
+                    type="button"
+                  >
                     <TimerReset className="h-4 w-4" />
-                    开始做
+                    {nextTask.status === "doing" ? "正在做" : nextTaskIsPending ? "正在开始" : "开始做"}
                   </button>
                 </>
               ) : (
@@ -110,6 +125,7 @@ function TodayView() {
                 </button>
               )}
             </div>
+            {mutationError ? <p className="rounded-md border border-politics/20 bg-politics/10 p-3 text-sm text-politics">{mutationError}</p> : null}
           </div>
         </Card>
 
@@ -213,6 +229,7 @@ function TodayView() {
                 <button
                   aria-label="切换完成状态"
                   className="mt-0.5 text-accent"
+                  disabled={pendingStatusTaskId === task.id}
                   onClick={() => setStatus(task, task.status === "done" ? "todo" : "done")}
                   type="button"
                 >
