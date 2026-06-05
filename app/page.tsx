@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckCircle2, Circle, Clock3, Plus, Target, TimerReset } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CheckCircle2, Circle, Clock3, Pause, Play, Plus, RotateCcw, Square, Target, TimerReset } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Card, PageHeader, ProgressRing, buttonClass, ghostButtonClass } from "@/components/ui";
 import { Protected } from "@/components/Protected";
 import { daysUntil, formatChineseDate, percent, todayISO } from "@/lib/date";
@@ -17,6 +17,18 @@ const focusBlocks = [
   { label: "下午", hint: "英语 / 政治推进", range: "14:00-17:30" },
   { label: "晚上", hint: "复盘 + 作业补齐", range: "19:30-22:30" }
 ];
+const pomodoroSeconds = 25 * 60;
+const focusStorageKey = "bit085403.focusTimer";
+
+type FocusStatus = "idle" | "running" | "paused" | "finished";
+type FocusSnapshot = {
+  taskId: string | null;
+  status: FocusStatus;
+  secondsLeft: number;
+  elapsedSeconds: number;
+  startedAt: string | null;
+  updatedAt: string;
+};
 
 export default function HomePage() {
   return (
@@ -32,10 +44,14 @@ function TodayView() {
   const [pendingStatusTaskId, setPendingStatusTaskId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const filters = useMemo(() => [{ column: "date", value: today }], [today]);
-  const { rows: tasks, loading, error, insert, update } = useTable("tasks", {
+  const { rows: tasks, loading, error, insert: insertTask, update: updateTask } = useTable("tasks", {
     filters,
     orderBy: "created_at",
     ascending: true
+  });
+  const { insert: insertStudySession } = useTable("study_sessions", {
+    orderBy: "started_at",
+    ascending: false
   });
 
   const doneTasks = tasks.filter((task) => task.status === "done");
@@ -59,16 +75,35 @@ function TodayView() {
   async function addTemplates(templates: typeof defaultTaskTemplates) {
     for (const template of templates) {
       const exists = tasks.some((task) => task.title === template.title && task.subject === template.subject);
-      if (!exists) await insert({ ...template, date: today });
+      if (!exists) await insertTask({ ...template, date: today });
     }
   }
 
   async function setStatus(task: Task, status: TaskStatus) {
     setPendingStatusTaskId(task.id);
     setMutationError(null);
-    const result = await update(task.id, { status });
+    const result = await updateTask(task.id, { status });
     if (result.error) setMutationError(result.error);
     setPendingStatusTaskId(null);
+    return !result.error;
+  }
+
+  async function recordFocusSession(task: Task, startedAt: string, elapsedSeconds: number) {
+    const minutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+    setMutationError(null);
+    const result = await insertStudySession({
+      subject: task.subject,
+      started_at: startedAt,
+      ended_at: new Date().toISOString(),
+      minutes,
+      note: task.title
+    });
+    if (result.error) setMutationError(result.error);
+    return !result.error;
+  }
+
+  function scrollToFocusTimer() {
+    document.getElementById("focus-timer")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
@@ -110,12 +145,12 @@ function TodayView() {
                   </button>
                   <button
                     className={ghostButtonClass}
-                    disabled={nextTask.status === "doing" || nextTaskIsPending}
-                    onClick={() => setStatus(nextTask, "doing")}
+                    disabled={nextTaskIsPending}
+                    onClick={scrollToFocusTimer}
                     type="button"
                   >
                     <TimerReset className="h-4 w-4" />
-                    {nextTask.status === "doing" ? "正在做" : nextTaskIsPending ? "正在开始" : "开始做"}
+                    选择任务开始专注
                   </button>
                 </>
               ) : (
@@ -141,6 +176,13 @@ function TodayView() {
           </div>
         </Card>
       </section>
+
+      <FocusTimer
+        addTemplateTasks={addTemplateTasks}
+        onRecordSession={recordFocusSession}
+        onSetStatus={setStatus}
+        tasks={activeTasks}
+      />
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card>
@@ -288,6 +330,239 @@ function SubjectTabs({
   );
 }
 
+function FocusTimer({
+  addTemplateTasks,
+  onRecordSession,
+  onSetStatus,
+  tasks
+}: {
+  addTemplateTasks: () => Promise<void>;
+  onRecordSession: (task: Task, startedAt: string, elapsedSeconds: number) => Promise<boolean>;
+  onSetStatus: (task: Task, status: TaskStatus) => Promise<boolean>;
+  tasks: Task[];
+}) {
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [status, setStatus] = useState<FocusStatus>("idle");
+  const [secondsLeft, setSecondsLeft] = useState(pomodoroSeconds);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [timerError, setTimerError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const selectableTasks = tasks.filter((task) => task.status !== "done" && task.status !== "skipped");
+  const selectedTask = taskId ? tasks.find((task) => task.id === taskId) ?? null : null;
+  const timerProgress = percent(pomodoroSeconds - secondsLeft, pomodoroSeconds);
+  const elapsedMinutes = Math.ceil(elapsedSeconds / 60);
+
+  useEffect(() => {
+    const rawSnapshot = window.localStorage.getItem(focusStorageKey);
+    if (!rawSnapshot) return;
+
+    try {
+      const snapshot = JSON.parse(rawSnapshot) as FocusSnapshot;
+      const secondsPassedAfterSave =
+        snapshot.status === "running" ? Math.max(0, Math.floor((Date.now() - new Date(snapshot.updatedAt).getTime()) / 1000)) : 0;
+      const nextSecondsLeft = Math.max(0, snapshot.secondsLeft - secondsPassedAfterSave);
+      const nextElapsedSeconds = Math.min(pomodoroSeconds, snapshot.elapsedSeconds + secondsPassedAfterSave);
+
+      setTaskId(snapshot.taskId);
+      setSecondsLeft(nextSecondsLeft);
+      setElapsedSeconds(nextElapsedSeconds);
+      setStartedAt(snapshot.startedAt);
+      setStatus(nextSecondsLeft === 0 && snapshot.status !== "idle" ? "finished" : snapshot.status);
+    } catch {
+      window.localStorage.removeItem(focusStorageKey);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status === "idle" || !taskId) {
+      window.localStorage.removeItem(focusStorageKey);
+      return;
+    }
+
+    const snapshot: FocusSnapshot = {
+      taskId,
+      status,
+      secondsLeft,
+      elapsedSeconds,
+      startedAt,
+      updatedAt: new Date().toISOString()
+    };
+    window.localStorage.setItem(focusStorageKey, JSON.stringify(snapshot));
+  }, [elapsedSeconds, secondsLeft, startedAt, status, taskId]);
+
+  useEffect(() => {
+    if (status !== "running") return;
+
+    const intervalId = window.setInterval(() => {
+      setSecondsLeft((current) => {
+        if (current <= 1) {
+          window.clearInterval(intervalId);
+          setStatus("finished");
+          return 0;
+        }
+        return current - 1;
+      });
+      setElapsedSeconds((current) => Math.min(pomodoroSeconds, current + 1));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [status]);
+
+  async function startTask(task: Task) {
+    setTimerError(null);
+    const started = await onSetStatus(task, "doing");
+    if (!started) return;
+
+    setTaskId(task.id);
+    setSecondsLeft(pomodoroSeconds);
+    setElapsedSeconds(0);
+    setStartedAt(new Date().toISOString());
+    setStatus("running");
+  }
+
+  function resetRound() {
+    setTimerError(null);
+    setSecondsLeft(pomodoroSeconds);
+    setElapsedSeconds(0);
+    setStartedAt(new Date().toISOString());
+    setStatus("running");
+  }
+
+  function stopWithoutSaving() {
+    setTimerError(null);
+    setTaskId(null);
+    setSecondsLeft(pomodoroSeconds);
+    setElapsedSeconds(0);
+    setStartedAt(null);
+    setStatus("idle");
+  }
+
+  async function saveSession(markDone: boolean) {
+    if (!selectedTask || !startedAt) return;
+    setSaving(true);
+    setTimerError(null);
+
+    const saved = await onRecordSession(selectedTask, startedAt, elapsedSeconds);
+    if (!saved) {
+      setSaving(false);
+      return;
+    }
+
+    if (markDone) {
+      const completed = await onSetStatus(selectedTask, "done");
+      if (!completed) {
+        setSaving(false);
+        return;
+      }
+    }
+
+    setSaving(false);
+    stopWithoutSaving();
+  }
+
+  return (
+    <Card className="space-y-4" id="focus-timer">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">专注计时</h2>
+          <p className="mt-1 text-sm text-muted">先选任务，再开始 25 分钟。暂停、重置、结束记录都在这里完成。</p>
+        </div>
+        <Badge className="border-accent/20 bg-accent/10 text-accent">番茄钟</Badge>
+      </div>
+
+      {status === "idle" || !selectedTask ? (
+        <div className="space-y-3">
+          {selectableTasks.length === 0 ? (
+            <div className="rounded-md border border-dashed border-line bg-paper p-4">
+              <p className="text-sm text-muted">今天还没有可专注的任务。先生成计划，再选择一项开始。</p>
+              <button className={`${ghostButtonClass} mt-3`} onClick={addTemplateTasks} type="button">
+                <Plus className="h-4 w-4" />
+                生成今日计划
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {selectableTasks.map((task) => (
+                <div className="rounded-md border border-line bg-paper p-3" key={task.id}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">{task.title}</p>
+                    <Badge className={subjectColors[task.subject]}>{subjects[task.subject]}</Badge>
+                    {task.status === "doing" ? <Badge className="border-accent/20 bg-accent/10 text-accent">进行中</Badge> : null}
+                  </div>
+                  <p className="mt-1 text-sm text-muted">
+                    {task.material || "未填资料"} · {task.chapter || "未填章节"} · 计划 {task.estimated_minutes} 分钟
+                  </p>
+                  <button className={`${buttonClass} mt-3`} onClick={() => startTask(task)} type="button">
+                    <Play className="h-4 w-4" />
+                    开始 25 分钟
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="flex justify-center lg:justify-start">
+            <ProgressRing label={status === "finished" ? "本轮完成" : "专注中"} value={timerProgress} />
+          </div>
+          <div className="min-w-0 space-y-4">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm text-muted">{statusLabels[status]}</p>
+                <Badge className={subjectColors[selectedTask.subject]}>{subjects[selectedTask.subject]}</Badge>
+              </div>
+              <h3 className="mt-2 text-2xl font-semibold leading-tight">{selectedTask.title}</h3>
+              <p className="mt-1 text-sm text-muted">
+                已专注 {elapsedMinutes} 分钟 · {selectedTask.material || "未填资料"} · {selectedTask.chapter || "未填章节"}
+              </p>
+            </div>
+
+            <div className="rounded-md border border-line bg-paper p-4 text-center">
+              <p className="font-mono text-5xl font-semibold leading-none text-ink">{formatTimer(secondsLeft)}</p>
+              <p className="mt-2 text-sm text-muted">{status === "finished" ? "本轮结束，可以记录时长或完成任务。" : "保持单任务推进，暂停时不会继续计时。"}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              {status === "running" ? (
+                <button className={ghostButtonClass} onClick={() => setStatus("paused")} type="button">
+                  <Pause className="h-4 w-4" />
+                  暂停
+                </button>
+              ) : null}
+              {status === "paused" ? (
+                <button className={buttonClass} onClick={() => setStatus("running")} type="button">
+                  <Play className="h-4 w-4" />
+                  继续
+                </button>
+              ) : null}
+              <button className={ghostButtonClass} onClick={resetRound} type="button">
+                <RotateCcw className="h-4 w-4" />
+                重新开始
+              </button>
+              <button className={ghostButtonClass} disabled={saving || elapsedSeconds === 0} onClick={() => saveSession(false)} type="button">
+                <Square className="h-4 w-4" />
+                {saving ? "保存中" : "结束并记录"}
+              </button>
+              <button className={buttonClass} disabled={saving || elapsedSeconds === 0} onClick={() => saveSession(true)} type="button">
+                <CheckCircle2 className="h-4 w-4" />
+                {saving ? "保存中" : "完成任务"}
+              </button>
+              <button className={ghostButtonClass} disabled={saving} onClick={stopWithoutSaving} type="button">
+                换任务
+              </button>
+            </div>
+
+            {timerError ? <p className="rounded-md border border-politics/20 bg-politics/10 p-3 text-sm text-politics">{timerError}</p> : null}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-line bg-paper p-3">
@@ -295,6 +570,19 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
   );
+}
+
+const statusLabels: Record<FocusStatus, string> = {
+  idle: "等待开始",
+  running: "正在专注",
+  paused: "已暂停",
+  finished: "本轮完成"
+};
+
+function formatTimer(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = seconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${restSeconds.toString().padStart(2, "0")}`;
 }
 
 function Countdown({ label, value, date, note }: { label: string; value: number; date: string; note?: string }) {

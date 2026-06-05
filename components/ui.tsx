@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 export function PageHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -9,8 +9,12 @@ export function PageHeader({ title, description }: { title: string; description?
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-lg border border-line bg-panel p-4 shadow-soft ${className}`}>{children}</section>;
+export function Card({ children, className = "", ...props }: ComponentPropsWithoutRef<"section"> & { children: ReactNode }) {
+  return (
+    <section className={`rounded-lg border border-line bg-panel p-4 shadow-soft ${className}`} {...props}>
+      {children}
+    </section>
+  );
 }
 
 export function Badge({ children, className = "" }: { children: ReactNode; className?: string }) {
