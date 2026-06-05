@@ -4,8 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "BIT 887 Study Dashboard",
-  description: "考研每日进度、计划任务、集训营作业和复盘管理"
+  title: "BIT 085403 Study Dashboard",
+  description: "北理工085403考研每日进度、起步计划、任务、错题和复盘管理"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

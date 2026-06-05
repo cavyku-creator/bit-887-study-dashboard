@@ -3,21 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Calculator,
   CalendarCheck,
   CheckSquare,
+  Cpu,
   GraduationCap,
   Home,
   LayoutDashboard,
   Languages,
   LogOut,
+  Map,
   NotebookPen
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 
 const navItems = [
   { href: "/", label: "今日进度", icon: Home },
+  { href: "/plan", label: "起步计划", icon: Map },
   { href: "/tasks", label: "计划任务", icon: CheckSquare },
-  { href: "/english", label: "单词统计", icon: Languages },
+  { href: "/math-errors", label: "数学错题", icon: Calculator },
+  { href: "/english", label: "英语一", icon: Languages },
+  { href: "/887", label: "专业课887", icon: Cpu },
   { href: "/camp", label: "集训营作业", icon: GraduationCap },
   { href: "/review", label: "复盘", icon: NotebookPen },
   { href: "/dashboard", label: "进度总览", icon: LayoutDashboard }
@@ -31,9 +37,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-paper text-ink">
       <header className="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Link href="/" className="flex min-w-0 items-center gap-2 font-semibold">
             <CalendarCheck className="h-5 w-5 text-accent" />
-            <span>BIT 887 Study Dashboard</span>
+            <span className="truncate">BIT 085403 Study Dashboard</span>
           </Link>
           <div className="flex items-center gap-3 text-sm">
             {user ? <span className="hidden max-w-44 truncate text-muted sm:block">{user.email}</span> : null}
@@ -55,9 +61,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 md:grid-cols-[220px_1fr]">
-        <nav className="md:sticky md:top-20 md:self-start">
-          <div className="flex gap-2 overflow-x-auto pb-2 md:flex-col md:overflow-visible md:pb-0">
+      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 md:grid-cols-[220px_minmax(0,1fr)]">
+        <nav className="min-w-0 max-w-full overflow-hidden md:sticky md:top-20 md:self-start">
+          <div className="flex max-w-full gap-2 overflow-x-auto pb-2 md:flex-col md:overflow-visible md:pb-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href;
@@ -77,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </nav>
 
-        <main>{children}</main>
+        <main className="min-w-0">{children}</main>
       </div>
     </div>
   );

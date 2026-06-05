@@ -11,6 +11,11 @@ body {
   min-width: 320px;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 button,
 input,
 select,

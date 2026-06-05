@@ -6,6 +6,7 @@ import { Badge, Card, PageHeader, ProgressRing, buttonClass, ghostButtonClass } 
 import { Protected } from "@/components/Protected";
 import { daysUntil, formatChineseDate, percent, todayISO } from "@/lib/date";
 import { subjectColors, subjects } from "@/lib/labels";
+import { estimatedExamNotice, estimatedExamStartDate, planStartDate } from "@/lib/plan";
 import { defaultTaskTemplates } from "@/lib/templates";
 import { useTable } from "@/lib/use-table";
 import type { Subject, Task, TaskStatus } from "@/lib/types";
@@ -117,10 +118,10 @@ function TodayView() {
             <p className="text-sm text-muted">关键日期</p>
             <h2 className="mt-2 text-lg font-semibold">倒计时</h2>
           </div>
-          <Countdown label="新东方集训营" value={daysUntil("2026-07-01")} date="2026-07-01" />
-          <Countdown label="考研初试" value={daysUntil("2026-12-20")} date="2026-12-20" />
+          <Countdown label="起步日" value={daysUntil(planStartDate)} date={planStartDate} />
+          <Countdown label="预计初试首日" value={daysUntil(estimatedExamStartDate)} date={estimatedExamStartDate} note={estimatedExamNotice} />
           <div className="rounded-md border border-line bg-paper p-3 text-sm text-muted">
-            今天只盯住进度环和下一件事，完成后再看列表。
+            6月6日起按基础轮推进；今天只盯住进度环和下一件事。
           </div>
         </Card>
       </section>
@@ -279,14 +280,15 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Countdown({ label, value, date }: { label: string; value: number; date: string }) {
+function Countdown({ label, value, date, note }: { label: string; value: number; date: string; note?: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-line bg-paper p-3">
-      <div>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-paper p-3">
+      <div className="min-w-0">
         <p className="font-medium">{label}</p>
         <p className="text-xs text-muted">{date}</p>
+        {note ? <p className="mt-1 break-words text-xs text-muted">{note}</p> : null}
       </div>
-      <p className="text-2xl font-semibold">{value} 天</p>
+      <p className="shrink-0 text-2xl font-semibold">{value} 天</p>
     </div>
   );
 }
