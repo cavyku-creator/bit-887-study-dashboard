@@ -15,6 +15,7 @@ import {
   Map,
   NotebookPen
 } from "lucide-react";
+import { InstallAppButton } from "./InstallAppButton";
 import { useAuth } from "./AuthProvider";
 
 const navItems = [
@@ -42,6 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="truncate">BIT 085403 Study Dashboard</span>
           </Link>
           <div className="flex items-center gap-3 text-sm">
+            <InstallAppButton />
             {user ? <span className="hidden max-w-44 truncate text-muted sm:block">{user.email}</span> : null}
             {user ? (
               <button
