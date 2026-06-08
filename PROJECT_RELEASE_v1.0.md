@@ -334,7 +334,7 @@ npm run build
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 3. 使用 Preview 部署验证登录、RLS、周任务、英语打卡、887 知识项和资料源流程。
 4. Preview 验收通过后再推 Production。
-5. 仓库中仍保留 `netlify.toml`，它是历史或遗留部署配置，不影响 Vercel 部署。
+5. 本项目部署策略统一使用 Vercel。
 
 ## 10. 上线前人工验收清单
 

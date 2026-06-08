@@ -6,7 +6,7 @@ import { PwaRegister } from "@/components/PwaRegister";
 
 export const metadata: Metadata = {
   applicationName: "BIT 085403 Study Dashboard",
-  metadataBase: new URL("https://bit-887-study-dashboard.netlify.app"),
+  metadataBase: new URL("https://bit-887-study-dashboard.vercel.app"),
   title: "BIT 085403 Study Dashboard",
   description: "北理工085403考研每日进度、起步计划、任务、错题和复盘管理",
   manifest: "/manifest.webmanifest",

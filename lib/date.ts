@@ -2,14 +2,19 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   year: "numeric",
   month: "long",
   day: "numeric",
+  timeZone: "Asia/Shanghai",
   weekday: "long"
 });
 
+const isoDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "Asia/Shanghai",
+  year: "numeric"
+});
+
 export function todayISO() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  const local = new Date(now.getTime() - offset * 60_000);
-  return local.toISOString().slice(0, 10);
+  return isoDateFormatter.format(new Date());
 }
 
 export function formatChineseDate(date = new Date()) {

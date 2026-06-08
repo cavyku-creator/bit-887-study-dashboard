@@ -86,10 +86,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 Preview 环境建议连接 Supabase 测试项目，用于验证迁移、RLS、表单写入和 Markdown 导出。Production 环境连接正式 Supabase 项目，迁移执行后再发布。
 
-## Netlify 遗留配置
-
-仓库中仍保留 `netlify.toml`。它是当前线上或历史部署的遗留配置，不影响 Vercel 部署。Vercel 部署以 Vercel 项目配置和环境变量为准。
-
 ## Markdown 导出
 
 887 知识项导出采用前端 Blob 下载，不经过 API route，不需要 service role key。导出文件名为：
