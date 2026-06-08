@@ -86,5 +86,23 @@ export const defaultTaskTemplates: TaskTemplate[] = [
     estimated_minutes: 55,
     mode: "standard",
     status: "todo"
+  },
+  {
+    subject: "professional_887",
+    title: "887基础计算：PN结或放大电路3题",
+    material: "887基础题",
+    chapter: "简答40% + 计算60%训练",
+    estimated_minutes: 45,
+    mode: "standard",
+    status: "todo"
+  },
+  {
+    subject: "professional_887",
+    title: "887 Anki：概念/公式卡8张",
+    material: "Anki",
+    chapter: "物理意义与适用条件",
+    estimated_minutes: 25,
+    mode: "minimum",
+    status: "todo"
   }
 ];

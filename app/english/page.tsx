@@ -1,26 +1,33 @@
 "use client";
 
-import { BarChart3, BookOpenCheck, CalendarDays, CheckCircle2, ListPlus, RotateCcw, Save, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, BookOpenCheck, CalendarDays, CheckCircle2, Languages, ListPlus, RotateCcw, Save, Target, Trash2, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
+import { MiniBarChart } from "@/components/charts/MiniBarChart";
+import { SparklineChart } from "@/components/charts/SparklineChart";
+import { MetricCard } from "@/components/MetricCard";
 import { Card, Field, PageHeader, ProgressRing, buttonClass, ghostButtonClass, inputClass } from "@/components/ui";
 import { Protected } from "@/components/Protected";
 import { percent, todayISO } from "@/lib/date";
+import { hasHitDailyVocabularyTarget } from "@/lib/stats";
 import { englishBookPlanTemplates } from "@/lib/templates";
 import { useTable } from "@/lib/use-table";
-import type { EnglishDailyStat } from "@/lib/types";
+import { useVocabularyStats, type VocabularyStatDraft } from "@/lib/use-vocabulary-stats";
+import type { EnglishDailyStat, JsonValue } from "@/lib/types";
 
 const TOTAL_WORDS = 7941;
 
-type StatDraft = Pick<EnglishDailyStat, "date" | "app_name" | "new_words" | "reviewed_words" | "study_minutes" | "accuracy" | "note">;
-
-const initialStat: StatDraft = {
+const initialStat: VocabularyStatDraft = {
   date: todayISO(),
   app_name: "不背单词",
   new_words: 0,
   reviewed_words: 0,
   study_minutes: 0,
   accuracy: null,
-  note: ""
+  note: "",
+  target_new_words: 50,
+  target_reviewed_words: 100,
+  check_in_status: "done"
 };
 
 export default function EnglishPage() {
@@ -32,9 +39,10 @@ export default function EnglishPage() {
 }
 
 function VocabularyStatsView() {
-  const [draft, setDraft] = useState<StatDraft>(initialStat);
-  const stats = useTable("english_daily_stats", { orderBy: "date", ascending: false });
+  const [draft, setDraft] = useState<VocabularyStatDraft>(initialStat);
+  const stats = useVocabularyStats();
   const today = todayISO();
+  const profiles = useTable("profiles", { limit: 1 });
   const englishTasks = useTable("tasks", {
     filters: [
       { column: "date", value: today },
@@ -44,39 +52,34 @@ function VocabularyStatsView() {
     ascending: true
   });
 
-  const summary = useMemo(() => {
-    const today = todayISO();
-    const todayStat = stats.rows.find((row) => row.date === today);
-    const learned = Math.min(TOTAL_WORDS, stats.rows.reduce((sum, row) => sum + row.new_words, 0));
-    const reviewed = stats.rows.reduce((sum, row) => sum + row.reviewed_words, 0);
-    const minutes = stats.rows.reduce((sum, row) => sum + row.study_minutes, 0);
-    const weekStart = getWeekStart(today);
-    const weekStats = stats.rows.filter((row) => row.date >= weekStart && row.date <= today);
-    const weekNew = weekStats.reduce((sum, row) => sum + row.new_words, 0);
-    const weekReview = weekStats.reduce((sum, row) => sum + row.reviewed_words, 0);
-    return {
-      todayStat,
-      learned,
-      remaining: Math.max(0, TOTAL_WORDS - learned),
-      reviewed,
-      minutes,
-      progress: percent(learned, TOTAL_WORDS),
-      weekNew,
-      weekReview
-    };
-  }, [stats.rows]);
+  const vocabTarget = readVocabTarget(profiles.rows[0]?.study_preferences) ?? TOTAL_WORDS;
+  const todayStat = stats.rows.find((row) => row.date === today);
+  const learned = Math.min(vocabTarget, stats.summary.totalNewWords);
+  const remaining = Math.max(0, vocabTarget - learned);
+  const progress = percent(learned, vocabTarget);
+  const recentSeven = stats.series.slice(-7).map((row) => ({
+    label: row.date.slice(5),
+    value: row.new_words,
+    secondaryValue: row.reviewed_words
+  }));
+  const trendSeries = stats.series.map((row) => ({
+    label: row.date.slice(5),
+    value: row.new_words + row.reviewed_words
+  }));
+  const achievementMessages = useMemo(() => buildAchievementMessages(stats.summary.streakDays, todayStat, stats.series), [stats.series, stats.summary.streakDays, todayStat]);
 
   async function saveStat() {
-    const payload = {
+    const payload: VocabularyStatDraft = {
       ...draft,
       new_words: Number(draft.new_words),
       reviewed_words: Number(draft.reviewed_words),
       study_minutes: Number(draft.study_minutes),
       accuracy: draft.accuracy === null ? null : Number(draft.accuracy),
-      note: draft.note || null
+      note: draft.note || null,
+      target_new_words: draft.target_new_words === null ? null : Number(draft.target_new_words),
+      target_reviewed_words: draft.target_reviewed_words === null ? null : Number(draft.target_reviewed_words)
     };
-    const existing = stats.rows.find((row) => row.date === payload.date && row.app_name === payload.app_name);
-    const result = existing ? await stats.update(existing.id, payload) : await stats.insert(payload);
+    const result = await stats.saveStat(payload);
     if (!result.error) setDraft({ ...initialStat, date: todayISO() });
   }
 
@@ -88,7 +91,10 @@ function VocabularyStatsView() {
       reviewed_words: row.reviewed_words,
       study_minutes: row.study_minutes,
       accuracy: row.accuracy,
-      note: row.note ?? ""
+      note: row.note ?? "",
+      target_new_words: row.target_new_words,
+      target_reviewed_words: row.target_reviewed_words,
+      check_in_status: row.check_in_status
     });
   }
 
@@ -105,19 +111,54 @@ function VocabularyStatsView() {
 
       <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <Card className="grid place-items-center gap-4">
-          <ProgressRing label="总词量" size="md" tone="#6b6aa8" value={summary.progress} />
+          <ProgressRing label="总词量" size="md" tone="#6b6aa8" value={progress} />
           <div className="text-center">
-            <p className="font-medium">{summary.learned} / {TOTAL_WORDS} 词</p>
-            <p className="mt-1 text-sm text-muted">剩余 {summary.remaining} 词</p>
+            <p className="font-medium">{learned} / {vocabTarget} 词</p>
+            <p className="mt-1 text-sm text-muted">剩余 {remaining} 词</p>
           </div>
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric icon={<CalendarDays className="h-5 w-5 text-english" />} label="今日新词" value={summary.todayStat?.new_words ?? 0} suffix="词" />
-          <Metric icon={<RotateCcw className="h-5 w-5 text-english" />} label="今日复习" value={summary.todayStat?.reviewed_words ?? 0} suffix="词" />
-          <Metric icon={<BarChart3 className="h-5 w-5 text-english" />} label="本周新词" value={summary.weekNew} suffix="词" />
-          <Metric icon={<CheckCircle2 className="h-5 w-5 text-english" />} label="累计复习" value={summary.reviewed} suffix="词" />
+          <MetricCard icon={<CalendarDays className="h-5 w-5 text-english" />} label="今日新词" value={todayStat?.new_words ?? 0} suffix="词" />
+          <MetricCard icon={<RotateCcw className="h-5 w-5 text-english" />} label="今日复习" value={todayStat?.reviewed_words ?? 0} suffix="词" />
+          <MetricCard icon={<Target className="h-5 w-5 text-english" />} label="连续打卡" value={stats.summary.streakDays} suffix="天" />
+          <MetricCard icon={<CheckCircle2 className="h-5 w-5 text-english" />} label="累计复习" value={stats.summary.totalReviewedWords} suffix="词" />
         </div>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard icon={<BarChart3 className="h-5 w-5 text-english" />} label="本周新词" value={stats.summary.currentWeekNewWords} suffix="词" />
+        <MetricCard icon={<RotateCcw className="h-5 w-5 text-english" />} label="本周复习" value={stats.summary.currentWeekReviewedWords} suffix="词" />
+        <MetricCard icon={<TrendingUp className="h-5 w-5 text-english" />} label="本月新词" value={stats.summary.currentMonthNewWords} suffix="词" />
+        <MetricCard icon={<CheckCircle2 className="h-5 w-5 text-english" />} label="本月复习" value={stats.summary.currentMonthReviewedWords} suffix="词" />
+      </div>
+
+      {achievementMessages.length > 0 ? (
+        <Card>
+          <h2 className="text-lg font-semibold">今日反馈</h2>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {achievementMessages.map((message) => (
+              <p className="rounded-md border border-line bg-paper p-3 text-sm text-muted" key={message}>{message}</p>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">最近 7 天</h2>
+            <p className="mt-1 text-sm text-muted">新词和复习量对照。</p>
+          </div>
+          <MiniBarChart data={recentSeven} />
+        </Card>
+        <Card>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">最近 30 天趋势</h2>
+            <p className="mt-1 text-sm text-muted">按每天新词与复习合计绘制。</p>
+          </div>
+          <SparklineChart data={trendSeries} label="词汇训练量" />
+        </Card>
       </section>
 
       <Card>
@@ -126,10 +167,16 @@ function VocabularyStatsView() {
             <h2 className="text-lg font-semibold">英语书目计划</h2>
             <p className="mt-1 text-sm text-muted">不录入书中内容，只把每天要做的学习动作放进计划。</p>
           </div>
-          <button className={ghostButtonClass} onClick={addBookPlanToToday} type="button">
-            <ListPlus className="h-4 w-4" />
-            补齐今日英语计划
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link className={ghostButtonClass} href="/english/grammar">
+              <Languages className="h-4 w-4" />
+              语法参考
+            </Link>
+            <button className={ghostButtonClass} onClick={addBookPlanToToday} type="button">
+              <ListPlus className="h-4 w-4" />
+              补齐今日英语计划
+            </button>
+          </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <BookPlanCard
@@ -151,14 +198,23 @@ function VocabularyStatsView() {
       <Card>
         <div className="mb-4">
           <h2 className="text-lg font-semibold">今日背词记录</h2>
-          <p className="mt-1 text-sm text-muted">每天从不背单词抄 3 个数字过来：新词、复习、学习分钟。</p>
+          <p className="mt-1 text-sm text-muted">每天从不背单词抄关键数字过来：新词、复习、学习分钟，也可以记录今日目标。</p>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <Field label="日期"><input className={inputClass} onChange={(event) => setDraft({ ...draft, date: event.target.value })} type="date" value={draft.date} /></Field>
           <Field label="App"><input className={inputClass} onChange={(event) => setDraft({ ...draft, app_name: event.target.value })} value={draft.app_name} /></Field>
+          <Field label="打卡状态">
+            <select className={inputClass} onChange={(event) => setDraft({ ...draft, check_in_status: event.target.value as VocabularyStatDraft["check_in_status"] })} value={draft.check_in_status}>
+              <option value="done">完成</option>
+              <option value="partial">部分完成</option>
+              <option value="missed">未完成</option>
+            </select>
+          </Field>
           <Field label="今日新词"><input className={inputClass} min={0} onChange={(event) => setDraft({ ...draft, new_words: Number(event.target.value) })} type="number" value={draft.new_words} /></Field>
           <Field label="复习词数"><input className={inputClass} min={0} onChange={(event) => setDraft({ ...draft, reviewed_words: Number(event.target.value) })} type="number" value={draft.reviewed_words} /></Field>
           <Field label="学习分钟"><input className={inputClass} min={0} onChange={(event) => setDraft({ ...draft, study_minutes: Number(event.target.value) })} type="number" value={draft.study_minutes} /></Field>
+          <Field label="新词目标"><input className={inputClass} min={0} onChange={(event) => setDraft({ ...draft, target_new_words: event.target.value === "" ? null : Number(event.target.value) })} type="number" value={draft.target_new_words ?? ""} /></Field>
+          <Field label="复习目标"><input className={inputClass} min={0} onChange={(event) => setDraft({ ...draft, target_reviewed_words: event.target.value === "" ? null : Number(event.target.value) })} type="number" value={draft.target_reviewed_words ?? ""} /></Field>
           <Field label="正确率 %"><input className={inputClass} max={100} min={0} onChange={(event) => setDraft({ ...draft, accuracy: event.target.value === "" ? null : Number(event.target.value) })} type="number" value={draft.accuracy ?? ""} /></Field>
           <div className="md:col-span-3"><Field label="备注"><input className={inputClass} onChange={(event) => setDraft({ ...draft, note: event.target.value })} placeholder="例如 今天复习旧词比较吃力" value={draft.note ?? ""} /></Field></div>
         </div>
@@ -174,7 +230,7 @@ function VocabularyStatsView() {
             <h2 className="text-lg font-semibold">最近记录</h2>
             <p className="mt-1 text-sm text-muted">点击编辑可回填到上面的表单。</p>
           </div>
-          <p className="text-sm text-muted">累计学习 {summary.minutes} 分钟</p>
+          <p className="text-sm text-muted">累计学习 {stats.summary.totalStudyMinutes} 分钟</p>
         </div>
         {stats.rows.length === 0 ? (
           <p className="rounded-md border border-dashed border-line bg-paper p-4 text-sm text-muted">还没有背词统计。今天开始记第一条就行。</p>
@@ -221,20 +277,24 @@ function BookPlanCard({ title, focus, steps, minutes }: { title: string; focus: 
   );
 }
 
-function Metric({ icon, label, value, suffix }: { icon: React.ReactNode; label: string; value: number; suffix: string }) {
-  return (
-    <Card>
-      {icon}
-      <p className="mt-3 text-sm text-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold">{value}</p>
-      <p className="text-xs text-muted">{suffix}</p>
-    </Card>
-  );
+function readVocabTarget(preferences?: Record<string, JsonValue>) {
+  const value = preferences?.vocab_total_target;
+  return typeof value === "number" && value > 0 ? value : null;
 }
 
-function getWeekStart(dateISO: string) {
-  const date = new Date(dateISO);
-  const day = date.getDay() || 7;
-  date.setDate(date.getDate() - day + 1);
-  return date.toISOString().slice(0, 10);
+function buildAchievementMessages(streakDays: number, todayStat: EnglishDailyStat | undefined, series: Array<{ date: string; new_words: number; reviewed_words: number }>) {
+  const messages: string[] = [];
+  if (todayStat && hasHitDailyVocabularyTarget(todayStat)) messages.push("今日目标完成，明天按同样节奏继续。");
+  if (streakDays >= 21) messages.push("连续打卡已达到 21 天，词汇循环进入稳定期。");
+  else if (streakDays >= 14) messages.push("连续打卡已达到 14 天，复习惯性正在形成。");
+  else if (streakDays >= 7) messages.push("连续打卡已达到 7 天，可以开始关注正确率和复习质量。");
+  else if (streakDays >= 3) messages.push("连续打卡已达到 3 天，先把节奏保住。");
+
+  const recent = series.slice(-3);
+  if (recent.length === 3) {
+    const totals = recent.map((item) => item.new_words + item.reviewed_words);
+    if (totals[0] < totals[1] && totals[1] < totals[2]) messages.push("最近三天训练量持续上升，注意别用过量新词挤压复习。");
+  }
+
+  return messages;
 }

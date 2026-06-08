@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Calculator,
   CalendarCheck,
+  CalendarDays,
   CheckSquare,
   Cpu,
   GraduationCap,
@@ -21,6 +22,7 @@ import { useAuth } from "./AuthProvider";
 const navItems = [
   { href: "/", label: "今日进度", icon: Home },
   { href: "/plan", label: "起步计划", icon: Map },
+  { href: "/weekly", label: "每周任务", icon: CalendarDays },
   { href: "/tasks", label: "计划任务", icon: CheckSquare },
   { href: "/math-errors", label: "数学错题", icon: Calculator },
   { href: "/english", label: "英语一", icon: Languages },

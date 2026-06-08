@@ -3,6 +3,7 @@ export const foundationEndDate = "2026-08-31";
 export const estimatedExamStartDate = "2026-12-19";
 export const estimatedExamEndDate = "2026-12-20";
 export const estimatedExamNotice = "预计，待教育部/研招网正式公布";
+export const targetExamDate = estimatedExamStartDate;
 
 export const officialAdmission = {
   sourceType: "官方确认",
