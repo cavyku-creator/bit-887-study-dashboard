@@ -73,9 +73,14 @@ supabase db reset
 
 不要自动抓取、登录、解析付费课程网站，也不要公开付费课程截图。
 
-## Vercel 部署
+## 双平台部署
 
-在 Vercel 导入仓库后配置环境变量：
+当前部署策略是 Vercel + Netlify 双平台挂载。Vercel 继续保留为当前已上线部署，Netlify 作为额外可访问地址，不替代 Vercel。
+
+- Vercel: `https://bit-887-study-dashboard.vercel.app`
+- Netlify: 在 Netlify Dashboard 连接同一 GitHub 仓库后生成 `*.netlify.app` 地址。
+
+两个平台都需要配置环境变量：
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
@@ -84,7 +89,23 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 当前实现不需要 `SUPABASE_SERVICE_ROLE_KEY`。如果后续新增服务端导出、OCR 或签名上传，service role key 只能在服务端 route handler 中读取，不能暴露给浏览器。
 
-Preview 环境建议连接 Supabase 测试项目，用于验证迁移、RLS、表单写入和 Markdown 导出。Production 环境连接正式 Supabase 项目，迁移执行后再发布。
+Vercel Preview 环境建议连接 Supabase 测试项目，用于验证迁移、RLS、表单写入和 Markdown 导出。Vercel Production 与 Netlify Production 连接正式 Supabase 项目，迁移执行后再发布。
+
+Netlify 可通过 Dashboard 导入 GitHub 仓库，构建设置由根目录 `netlify.toml` 提供：
+
+```bash
+npm run build
+```
+
+Supabase Auth Redirect URLs 需要包含本地、Vercel 和 Netlify 地址：
+
+```bash
+http://localhost:3000/**
+https://bit-887-study-dashboard.vercel.app/**
+https://bit-887-study-dashboard.netlify.app/**
+```
+
+如果 Netlify 最终生成的站点域名不是 `bit-887-study-dashboard.netlify.app`，请把实际 `https://你的-netlify-地址/**` 也加入 Supabase Auth Redirect URLs。
 
 ## Markdown 导出
 
